@@ -1,4 +1,10 @@
 /*
+ * 追記：UserJSCallbackが設定されていないと、正しく動きません！！
+ * UserJSCallbackが不要なコースの場合でも、以下のようにして関数だけ作ってください。（応急処置です）
+ * 
+ *	"userJSCallback": ()=>{}
+ * 
+ *
  * Show Key: キー入力を表示
  * extensionsでInput Playerより前に加えると、プレイログ中も表示されます。
  *
