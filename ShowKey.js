@@ -1,10 +1,4 @@
 /*
- * 追記：UserJSCallbackが設定されていないと、正しく動きません！！
- * UserJSCallbackが不要なコースの場合でも、以下のようにして関数だけ作ってください。（応急処置です）
- * 
- *	"userJSCallback": ()=>{}
- * 
- *
  * Show Key: キー入力を表示
  * extensionsでInput Playerより前に加えると、プレイログ中も表示されます。
  *
@@ -25,9 +19,16 @@
 CanvasMasao.ShowKey = (function() {
 	var ShowKey = function(mc, position, changePosKey) {
 		this.mc = mc;
+
+		/* UseJSCallbackを入れていないと通りません。 */
+		this.ap = mc.masaoJSSAppletEmulator;
+		if (!this.ap) {
+			return;
+		}
+
 		this.position = position;
 		this.changePosKey = changePosKey;
-		this.f = this.mc.masaoJSSAppletEmulator.newFont("Dialog", 1, 24);
+		this.f = this.ap.newFont("Dialog", 1, 24);
 		//キー番号とキーコードの表
 		this.keyTable = [
 			{"symbol":"←", "keyCode":[37, 100], "base64":"R0lGODlhGAAYAPECAAAAAAAAAP///wAAACH5BAkKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAGAAYAAACO4SPqcvtD6MEIUwVhLDXZM1d39ZRGtmN4aRW7lst40nXKDLb9nq0MNxQlTwnHqs4NIGSHyPLmYxKp5MCADs="},
@@ -40,11 +41,13 @@ CanvasMasao.ShowKey = (function() {
 		];
 		this.keyTable.forEach(elm=>elm["f_press"] = false);
 		this.key_len = this.keyTable.length;
+		this.height = this.mc.gg.system_screen_height;
+		this.width = this.mc.gg.system_screen_width;
 
 	};
 	ShowKey.prototype.init = function() {
 		this.keyTable.filter(elm=>elm["base64"]).forEach( (elm, idx, self)=>{
-			elm["img"] = this.mc.masaoJSSAppletEmulator.newImageOnLoad("data:image/gif;base64," + elm["base64"]);
+			elm["img"] = this.ap.newImageOnLoad("data:image/gif;base64," + elm["base64"]);
 		})
 
 		//GameKeyを書き換え。
@@ -92,6 +95,10 @@ CanvasMasao.ShowKey = (function() {
 		var mc = this.mc,
 			ml_mode = mc.mp.ml_mode;
 
+		if (!this.ap) {
+			return;
+		}
+		
 		if (ml_mode === 400) { // クリア時にキー入力をリセット。
 			this.keyTable.forEach(elm=>{elm["f_press"] = false;});
 		}
@@ -108,15 +115,15 @@ CanvasMasao.ShowKey = (function() {
 			let xx, yy;
 			switch (this.position) {
 				case 1:
-				xx = 502 + (idx - this.key_len) * 25;
-				yy = 286;
+				xx = this.width - 10 + (idx - this.key_len) * 25;
+				yy = this.height - 34;
 				break;
 				case 2:
 				xx = 10;
 				yy = 10 + idx * 25;
 				break;
 				case 3:
-				xx = 478;
+				xx = this.width - 34;
 				yy = 10 + idx * 25;
 				break;
 			}
@@ -126,7 +133,7 @@ CanvasMasao.ShowKey = (function() {
 		this.keyTable.forEach( (elm, idx)=>{
 			const al = 100 - 80 * (1 - elm["f_press"]);
 			if (elm["img"]) {
-				this.mc.masaoJSSAppletEmulator.drawImageAlphaComposite(elm["img"], ...pos(idx), al);
+				this.ap.drawImageAlphaComposite(elm["img"], ...pos(idx), al);
 			}
 			else {
 				const t_textBaseline = g._ctx.textBaseline;
@@ -138,9 +145,9 @@ CanvasMasao.ShowKey = (function() {
 				g.setFont(this.f);
     			const pos2 = pos(idx);
     			pos2[0] += 12;
-				this.mc.masaoJSSAppletEmulator.setOffscreenColor(255,255,255, al2);
+				this.ap.setOffscreenColor(255,255,255, al2);
 				g._ctx.fillText(elm["symbol"], ...pos2);
-				this.mc.masaoJSSAppletEmulator.setOffscreenColor(0, 0, 0, al2);
+				this.ap.setOffscreenColor(0, 0, 0, al2);
 				g._ctx.strokeText(elm["symbol"], ...pos2);
     			g._ctx.textBaseline = t_textBaseline;
     			g._ctx.textAlign = t_textAlign;
@@ -154,11 +161,16 @@ CanvasMasao.ShowKey = (function() {
 	ShowKey.inject = function(mc, options) {
 		var _ui = mc.userInit,
 			_us = mc.userSub;
+
+
 		var o = options.ShowKey || {};
 		var position = parseInt(o.position) || 1;
 		var changePosKey = parseInt(o.changePosKey) || 0;
+
+
 		mc.userInit = function() {
 			_ui.apply(mc);
+
 			this.showKey = new CanvasMasao.ShowKey(this, position, changePosKey);
 			this.showKey.init();
 		};
